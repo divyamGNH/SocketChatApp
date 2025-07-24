@@ -1,65 +1,67 @@
-import User from "../models/user.model";
-import Message from "../models/message.model";
+import User from "../models/user.model.js";
+import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 
-//dont forget to put the console logs in the catch blocks
-
-export const getUsersForSidebar = async(req,res) =>{
+// GET all users except the logged-in user
+export const getUsersForSidebar = async (req, res) => {
     try {
-        //in the protected route we passed the req.user = user that is we passed the verified user that is what we are using
         const loggedInUserId = req.user._id;
-        //remove all the users with same _id as the logged in user
-        const filteredUser = await User.find({_id : {$ne:loggedInUserId}}).select("-password");
-
-        res.status(200).json(filteredUser);
-
+        const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+        res.status(200).json(filteredUsers);
     } catch (error) {
-        
+        console.error("Error in getUsersForSidebar:", error);
+        res.status(500).json({ error: "Server Error" });
     }
-}
+};
 
-export const getMessages = async(req,res) =>{
+// GET all messages between two users
+export const getMessages = async (req, res) => {
     try {
-        const {id:userToChatId} = req.params.id;
+        const userToChatId = req.params.id; // fix: destructure directly
         const loggedInUserId = req.user._id;
 
-        const messages = await User.find({
-            $or:[
-                {senderId : loggedInUserId , recieverId : userToChatId},
-                {senderId : userToChatId , recieverId : loggedInUserId}
+        const messages = await Message.find({
+            $or: [
+                { senderId: loggedInUserId, recieverId: userToChatId },
+                { senderId: userToChatId, recieverId: loggedInUserId }
             ]
-        });
+        }).sort({ createdAt: 1 }); // optional: sort chronologically
 
-        res.statud(200).json(messages);
+        res.status(200).json(messages);
     } catch (error) {
-        
+        console.error("Error in getMessages:", error);
+        res.status(500).json({ error: "Server Error" });
     }
-}
+};
 
-export const sendMessages = async(req,res) =>{
+// POST a new message
+export const sendMessages = async (req, res) => {
     try {
-        const {text,image} = req.body;
+        const { text, image } = req.body;
         const recieverId = req.params.id;
-        const senderId = req.user.id;
+        const senderId = req.user._id;
 
-        let imageUrl;
-        if(image){
-            const uploadImage = await cloudinary.uploader.upload(image);
-            imageUrl = uploadImage.secure_url;
+        let imageUrl = null;
+
+        if (image) {
+            const uploadedImage = await cloudinary.uploader.upload(image);
+            imageUrl = uploadedImage.secure_url;
         }
 
         const newMessage = new Message({
             senderId,
             recieverId,
             text,
-            image :imageUrl
+            image: imageUrl
         });
 
         await newMessage.save();
 
-        //socket real time logic
+        // TODO: Add socket logic here
 
+        res.status(201).json(newMessage);
     } catch (error) {
-        
+        console.error("Error in sendMessages:", error);
+        res.status(500).json({ error: "Server Error" });
     }
-}
+};

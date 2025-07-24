@@ -1,13 +1,16 @@
 import express from "express";
-import { protectedRoute } from "../middleware/auth.middleware";
-import { getUsersForSidebar,getMessages, sendMessages } from "../controllers/message.controller";
+import { protectedRoute } from "../middleware/auth.middleware.js";
+import { getUsersForSidebar, getMessages, sendMessages } from "../controllers/message.controller.js";
 
 const router = express.Router();
 
-router.get("/users",protectedRoute, getUsersForSidebar);
-//The id is being passed on by the frontend so we do not need to worry that where did the id come from
-router.get("/:id",protectedRoute, getMessages);
+// Get all users except logged-in user
+router.get("/users", protectedRoute, getUsersForSidebar);
 
+// Get all messages between logged-in user and user with :id
+router.get("/:id", protectedRoute, getMessages);
+
+// Send a message to user with :id
 router.post("/send/:id", protectedRoute, sendMessages);
 
 export default router;
