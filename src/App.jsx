@@ -1,4 +1,4 @@
-// import Navbar from "./components/Navbar";
+import Navbar from "./components/NavBar.jsx";
 
 import HomePage from "./pages/HomePage";
 import SignUpPage from "./pages/SignUpPage";
@@ -38,7 +38,7 @@ const App = () => {
   return (
     // <div data-theme={theme}>
     <div>
-      {/* <Navbar /> */}
+      <Navbar />
 
       <Routes>
         <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />

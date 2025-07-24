@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { Socket } from "socket.io-client";
 
 // const baseUrl = "http://localhost/3000/api";
 
@@ -17,7 +18,7 @@ export const useAuthStore = create((set, get) => ({
   isUpdatingProfile: false,
   isCheckingAuth: true,
   onlineUsers: [],
-  //   socket: null,
+  socket: null,
 
   checkAuth: async () => {
     try {
@@ -38,6 +39,8 @@ export const useAuthStore = create((set, get) => ({
       const res = await axios.post("http://localhost:3000/api/auth/signup", data, { withCredentials: true });
       set({ authUser: res.data });
       toast.success("Account created succesfully !");
+
+      get().connectSocket();
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -51,6 +54,9 @@ export const useAuthStore = create((set, get) => ({
         const res = await axios.post("http://localhost:3000/api/auth/login", data, { withCredentials: true });
         set({authUser : res.data});
         toast.success("Logged in succesfully !");
+
+        //As soon as we login we want to connect the socket
+        get().connectSocket();
     } catch (error) {
         toast.error(error.response.data.message);
     } finally{
@@ -63,8 +69,27 @@ export const useAuthStore = create((set, get) => ({
         const res = await axios.post("http://localhost:3000/api/auth/logout", {}, { withCredentials: true });
         set({authUser:null});
         toast.success("Logged out succesfully !");
+        get().disconnectSocket();
     } catch (error) {
         toast.error(error.response.data.message);
     }
   },
+
+  connectSocket: ()=>{
+    const {authUser} = get();
+
+    //Check is the user is authenticated or not and also check if the socket is already connected or not if already connected no need to connect it again
+    if(!authUser || get().socket?.connected) return;
+
+    const socket = io(BASE_URL);
+    socket.connect();
+    set({socket : socket});
+  },
+
+  disconnectSocket: () =>{
+    // First check is the socket is connected only if it is connected then disconnect 
+    if(get().socket?.connected){
+      get().socket.disconnect();
+    }
+  }
 }));
